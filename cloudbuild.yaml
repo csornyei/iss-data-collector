@@ -1,0 +1,37 @@
+steps:
+  - id: "get credentials from storage bucket"
+    name: "gcr.io/cloud-builders/gsutil"
+    args:
+      - "cp"
+      - "gs://$PROJECT_ID-credentials/credentials.json"
+      - "./data-collector/credentials.json"
+
+  - id: "build docker image"
+    name: "gcr.io/cloud-builders/docker"
+    args:
+      - "build"
+      - "--build-arg"
+      - "PROJECT_ID=$PROJECT_ID"
+      - "-t"
+      - "gcr.io/$PROJECT_ID/iss-data-collector:$COMMIT_SHA"
+      - "-t"
+      - "gcr.io/$PROJECT_ID/iss-data-collector:latest"
+      - "./data-collector"
+
+  - id: "push image"
+    name: "gcr.io/cloud-builders/docker"
+    args:
+      - "push"
+      - "-a"
+      - "gcr.io/$PROJECT_ID/iss-data-collector"
+
+  - id: "deploy to cloud run"
+    name: "gcr.io/cloud-builders/gcloud"
+    args:
+      - "run"
+      - "deploy"
+      - "iss-data-collector"
+      - "--image"
+      - "gcr.io/$PROJECT_ID/iss-data-collector:latest"
+      - "--region"
+      - "europe-west4"
